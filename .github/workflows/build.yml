@@ -607,19 +607,22 @@ jobs:
 
           fi
 
-          # ReSukiSU refuses to build Non-GKI kernels that lack CONFIG_KALLSYMS_ALL
-          # and have not exported write_op from selinuxfs.c. Enabling KALLSYMS_ALL
-          # is the supported way to skip that manual export.
-          # DEBUG_KERNEL is a Kconfig dependency of KALLSYMS_ALL on 5.10+ / GKI.
+          # ReSukiSU refuses to build if CONFIG_KALLSYMS_ALL is off and write_op
+          # is still static in selinuxfs.c. Enabling KALLSYMS_ALL skips that export.
+          # Kconfig: KALLSYMS_ALL depends on DEBUG_KERNEL && KALLSYMS (true on 4.14 too).
           if [[ "${{ inputs.ksu_type }}" == ReSukiSU* ]]; then
 
             sed -i '/CONFIG_DEBUG_KERNEL/d' arch/arm64/configs/${configs_list[0]}
             sed -i '/CONFIG_KALLSYMS=/d' arch/arm64/configs/${configs_list[0]}
             sed -i '/CONFIG_KALLSYMS_ALL/d' arch/arm64/configs/${configs_list[0]}
+            sed -i '/CONFIG_SCHED_DEBUG/d' arch/arm64/configs/${configs_list[0]}
             echo "CONFIG_DEBUG_KERNEL=y" >> arch/arm64/configs/${configs_list[0]}
             echo "CONFIG_KALLSYMS=y" >> arch/arm64/configs/${configs_list[0]}
             echo "CONFIG_KALLSYMS_ALL=y" >> arch/arm64/configs/${configs_list[0]}
-            echo "Enabled KALLSYMS_ALL for ReSukiSU"
+            # SCHED_DEBUG defaults to y once DEBUG_KERNEL is on. YAAP 4.14's
+            # sched/debug.c was backported from EEVDF and will not compile.
+            echo "# CONFIG_SCHED_DEBUG is not set" >> arch/arm64/configs/${configs_list[0]}
+            echo "Enabled KALLSYMS_ALL for ReSukiSU (SCHED_DEBUG kept off)"
 
           fi
 
